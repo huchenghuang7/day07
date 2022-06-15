@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>02_house.html</title>
+    <style>
+      #container {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+      }
+      #d1 {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 61%;
+        height: 49%;
+      }
+      #d2 {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 38%;
+        height: 100%;
+      }
+      #d3 {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 61%;
+        height: 49%;
+      }
+      body {
+        background-color: rgb(16, 12, 42);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="d1"></div>
+      <div id="d2"></div>
+      <div id="d3"></div>
+    </div>
+    <script src="./axios.min.js"></script>
+    <script src="./echarts.min.js"></script>
+    <script>
+      // 模拟向服务端发送请求，加载数据分析结果，在浏览器中echarts可视化
+      axios.get("attention.json").then((res) => {
+        console.log("最受关注的8套房源", res);
+        // 整理数据结构 将res.data 转成 data格式
+        /**
+         * res.data: [{attention:1401, community:弘善家园}, {}, {} ....]
+         * data: {
+         *    legendData:['弘善家园', '康家园'....],
+         *    seriesData:[{name:'弘善家园', value:1401}, {}, {} ....]
+         * }
+         */
+        let data = {
+          legendData: [],
+          seriesData: [],
+        };
+        res.data.forEach((item) => {
+          // item就是每一套房源对象
+          data.legendData.push(item.community);
+          data.seriesData.push({
+            name: item.community,
+            value: item.attention,
+          });
+        });
+        console.log(data);
+
+        // 显示图表
+        let mchart = echarts.init(document.getElementById("d3"), "dark");
+        console.log(data);
+        let option = {
+          title: {
+            text: "最受关注度的8套房源",
+          },
+          tooltip: {
+            trigger: "item",
+            formatter: "{a} <br/>{b} : {c} ({d}%)",
+          },
+          legend: {
+            type: "scroll",
+            orient: "vertical",
+            right: 10,
+            top: 20,
+            bottom: 20,
+            data: data.legendData,
+          },
+          series: [
+            {
+              name: "姓名",
+              type: "pie",
+              radius: "55%",
+              center: ["40%", "50%"],
+              data: data.seriesData,
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: "rgba(0, 0, 0, 0.5)",
+                },
+              },
+            },
+          ],
+        };
+        mchart.setOption(option);
+      });
+
+      // 模拟向服务端发送请求，加载数据分析结果，在浏览器中echarts可视化
+      axios.get("housetype.json").then((res) => {
+        console.log("房屋数量分布：", res);
+        // 整理数据结构：将res.data转成labels、values
+        // res.data: {'2室一厅':6666, '3室一厅':2011, 'xxxxx':xxxx...}
+        // labels: ['2室一厅', '3室一厅'..]
+        // values: [6666, 2011...]
+        let labels = [];
+        let values = [];
+        for (key in res.data) {
+          if (res.data[key] < 20) {
+            continue;
+          }
+          labels.unshift(key);
+          values.unshift(res.data[key]);
+        }
+
+        // 呈现柱状图  d2
+        let mchart = echarts.init(document.getElementById("d2"), "dark");
+        let option = {
+          title: {
+            text: "北京主城区二手房源户型数量分布",
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow",
+            },
+          },
+          legend: {
+            right: 0,
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            bottom: "3%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "value",
+            boundaryGap: [0, 0.01],
+          },
+          yAxis: {
+            type: "category",
+            data: labels,
+          },
+          series: [
+            {
+              name: "2011",
+              type: "bar",
+              data: values,
+            },
+          ],
+        };
+        mchart.setOption(option);
+      });
+
+      // 模拟向服务端发送请求，加载数据分析结果，在浏览器中echarts可视化
+      axios.get("price.json").then((res) => {
+        console.log("12个月平均房价走势：", res);
+        // 整理数据结构  将res.data 转成  mseries
+        // res.data:  {东城:[], 西城:[], 海淀:[] ....}
+        // mseries: [{name:'东城', type:'line', data:[]}, ....]
+        let mseries = [];
+        for (key in res.data) {
+          // 遍历对象的所有属性
+          mseries.push({
+            name: key,
+            type: "line",
+            data: res.data[key],
+          });
+        }
+        // 显示图表
+        let mchart = echarts.init(document.getElementById("d1"), "dark");
+        let option = {
+          title: {
+            text: "2020年北京主城区二手房价趋势",
+          },
+          tooltip: {
+            trigger: "axis",
+          },
+          legend: {
+            data: ["朝阳", "海淀", "东城", "西城"],
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            bottom: "3%",
+            containLabel: true,
+          },
+          toolbox: {
+            feature: {
+              saveAsImage: {},
+            },
+          },
+          xAxis: {
+            type: "category",
+            boundaryGap: false,
+            data: [
+              "一月",
+              "二月",
+              "三月",
+              "四月",
+              "五月",
+              "六月",
+              "七月",
+              "八月",
+              "九月",
+              "十月",
+              "十一月",
+              "十二月",
+            ],
+          },
+          yAxis: {
+            type: "value",
+            min: 60000,
+            max: 130000,
+          },
+          series: mseries,
+        };
+        mchart.setOption(option);
+      });
+    </script>
+  </body>
+</html>
